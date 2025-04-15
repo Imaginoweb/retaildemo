@@ -1,0 +1,88 @@
+:root {
+  --color-dark: #070033;
+  --color-light: #ffffff;
+  --color-text: #070033;
+  --font-titles: 'obviously-narrow', 'Helvetica Neue', sans-serif;
+  --font-base: 'neue-haas-unica', Helvetica, Arial, sans-serif;
+}
+
+body {
+  margin: 0;
+  padding: 0;
+  font-family: var(--font-base);
+  background-color: var(--color-light);
+}
+
+.footer {
+  padding: 60px 20px;
+  background-color: var(--color-light);
+  color: var(--color-text);
+}
+
+.container {
+  max-width: 800px;
+  margin: 0 auto;
+  text-align: center;
+}
+
+.title {
+  font-family: var(--font-titles);
+  font-size: 56px;
+  font-weight: 900;
+  margin-bottom: 20px;
+}
+
+.subtitle {
+  font-size: 18px;
+  font-weight: 500;
+  margin-bottom: 30px;
+}
+
+.form-inline {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin-bottom: 20px;
+}
+
+.form-inline input[type="email"] {
+  padding: 12px 20px;
+  font-size: 16px;
+  border: 1px solid #ccc;
+  border-radius: 999px;
+  width: 300px;
+  max-width: 100%;
+}
+
+.form-inline button {
+  padding: 12px 20px;
+  font-size: 16px;
+  background-color: var(--color-dark);
+  color: var(--color-light);
+  border: none;
+  border-radius: 999px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  transition: background-color 0.3s ease;
+}
+
+.form-inline button:hover {
+  background-color: #333333;
+}
+
+.legal {
+  font-size: 13px;
+  color: #333333;
+  line-height: 1.5;
+  max-width: 500px;
+  margin: 0 auto;
+}
+
+.legal a {
+  color: var(--color-text);
+  text-decoration: underline;
+}
