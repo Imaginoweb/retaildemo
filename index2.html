@@ -1,0 +1,540 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>ImagineDay 2026 - Hub d'Émulation</title>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <style>
+    :root {
+      --primary: #007bff;
+      --primary-hover: #0056b3;
+      --success: #28a745;
+      --danger: #dc3545;
+      --warning: #f0ad4e;
+      --dark: #333;
+      --bg: #f4f4f4;
+    }
+    body {
+      font-family: system-ui, -apple-system, sans-serif;
+      background: var(--bg);
+      margin: 0;
+      padding: 20px;
+      display: flex;
+      justify-content: center;
+    }
+    .container {
+      max-width: 1100px;
+      width: 100%;
+      background: #ffffff;
+      border-radius: 12px;
+      padding: 30px;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+    }
+    .header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      border-bottom: 2px solid #eee;
+      padding-bottom: 20px;
+      margin-bottom: 20px;
+    }
+    .logo-title {
+      display: flex;
+      align-items: center;
+      gap: 20px;
+    }
+    .logo-title img {
+      height: 50px;
+    }
+    .nav-tabs {
+      display: flex;
+      gap: 10px;
+      margin-bottom: 20px;
+    }
+    .tab-btn {
+      padding: 10px 20px;
+      border: none;
+      background: #e0e0e0;
+      cursor: pointer;
+      border-radius: 8px;
+      font-weight: 600;
+      transition: 0.2s;
+    }
+    .tab-btn.active {
+      background: var(--primary);
+      color: white;
+    }
+    .view-section {
+      display: none;
+    }
+    .view-section.active {
+      display: block;
+    }
+    input, select, button {
+      padding: 10px;
+      border-radius: 8px;
+      border: 1px solid #ccc;
+      font-size: 14px;
+    }
+    .btn {
+      padding: 10px 14px;
+      border: none;
+      border-radius: 6px;
+      background: var(--primary);
+      color: white;
+      cursor: pointer;
+      font-weight: 500;
+    }
+    .btn:hover { background: var(--primary-hover); }
+    .btn.success { background: var(--success); }
+    .btn.danger { background: var(--danger); }
+    .btn.secondary { background: #6c757d; }
+    
+    /* Checkin Styles */
+    .search-bar { width: 100%; box-sizing: border-box; margin-bottom: 20px; font-size: 16px; }
+    .guest-card {
+      background: #f9f9f9;
+      border-radius: 10px;
+      padding: 15px;
+      margin-bottom: 10px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      border-left: 5px solid var(--primary);
+      box-shadow: 0 2px 4px rgba(0,0,0,0.02);
+    }
+    .guest-info { display: flex; flex-direction: column; gap: 4px; }
+    
+    /* Badges */
+    .badge {
+      font-size: 11px;
+      font-weight: bold;
+      padding: 3px 8px;
+      border-radius: 12px;
+      color: white;
+      width: max-content;
+    }
+    .badge.imagino { background-color: var(--warning); color: #000; }
+    .badge.externe { background-color: var(--primary); }
+
+    /* Admin Table */
+    .admin-actions {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 20px;
+      gap: 15px;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 15px;
+    }
+    th, td { padding: 12px; border: 1px solid #eee; text-align: left; }
+    th { background: #f8f9fa; cursor: pointer; user-select: none; }
+    
+    /* Form Layout */
+    .grid-form {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 15px;
+    }
+    .full-width { grid-column: span 2; }
+    
+    .chart-box { max-width: 300px; margin: 30px auto 0 auto; }
+    .counter { font-size: 16px; font-weight: bold; color: #555; }
+    .loader { text-align: center; font-size: 16px; padding: 20px; color: #666; }
+  </style>
+</head>
+<body>
+
+  <div class="container">
+    <div class="header">
+      <div class="logo-title">
+        <img src="logo.png" alt="Logo Imagino" onerror="this.style.display='none'"/>
+        <h1>ImagineDay 2026</h1>
+      </div>
+      <div class="counter" id="globalCounter">Chargement...</div>
+    </div>
+
+    <div class="nav-tabs">
+      <button class="tab-btn active" onclick="switchTab(event, 'checkin')">👋 Check-in Invités</button>
+      <button class="tab-btn" onclick="switchTab(event, 'register')">📝 Nouvelle Inscription</button>
+      <button class="tab-btn" onclick="switchTab(event, 'admin')">📊 Dashboard Admin</button>
+    </div>
+
+    <div id="loader" class="loader">Initialisation et récupération des données...</div>
+
+    <div id="view-checkin" class="view-section active">
+      <input type="text" id="searchInput" class="search-bar" placeholder="Rechercher un invité (Saisir au moins 2 lettres...)" oninput="renderCheckInList()">
+      <div id="checkinList"></div>
+    </div>
+
+    <div id="view-register" class="view-section">
+      <h2>Ajouter un participant</h2>
+      <form id="registrationForm" onsubmit="handleFormSubmit(event)">
+        <div class="grid-form">
+          <input type="text" id="formPrenom" placeholder="Prénom" required>
+          <input type="text" id="formNom" placeholder="Nom" required>
+          <input type="email" id="formEmail" placeholder="Adresse Email (Identifiant unique)" required class="full-width">
+          <input type="tel" id="formMobile" placeholder="Téléphone Mobile (ex: 0612345678)">
+          <input type="text" id="formPoste" placeholder="Poste / Fonction">
+          <input type="text" id="formEntreprise" placeholder="Entreprise" class="full-width">
+          
+          <select id="formAtelier" class="full-width">
+            <option value="">-- Sélectionner un Atelier --</option>
+            <option value="Journey Beginner">Journey Beginner</option>
+            <option value="Advanced Analytics">Advanced Analytics</option>
+          </select>
+
+          <select id="formTiming">
+            <option value="Entiere">Présence : Journée Entière</option>
+            <option value="Matin">Présence : Matinée</option>
+            <option value="ApresMidi">Présence : Après-midi</option>
+          </select>
+          
+          <select id="formCocktail">
+            <option value="Oui">Reste au Cocktail : Oui</option>
+            <option value="Non">Reste au Cocktail : Non</option>
+          </select>
+        </div>
+        <div style="margin-top: 20px; display: flex; gap: 10px;">
+          <button type="submit" class="btn success">Inscrire & Marquer Présent</button>
+          <button type="button" class="btn secondary" onclick="fallbackToCheckin()">Annuler</button>
+        </div>
+      </form>
+    </div>
+
+    <div id="view-admin" class="view-section">
+      <div class="admin-actions">
+        <div style="display: flex; gap: 10px;">
+          <button class="btn" onclick="exportCSV()">📄 Exporter en CSV</button>
+          <button class="btn success" onclick="fetchGuests()">🔄 Actualiser l'API</button>
+        </div>
+        <div>
+          <input type="text" id="adminSearchInput" placeholder="Rechercher par nom..." oninput="renderAdminTable()" style="margin-right: 10px;">
+          <select id="adminFilter" onchange="renderAdminTable()">
+            <option value="">Tous les participants</option>
+            <option value="Imagino">Équipes Imagino</option>
+            <option value="Externe">Invités Externes</option>
+          </select>
+        </div>
+      </div>
+
+      <table id="adminTable">
+        <thead>
+          <tr>
+            <th onclick="sortTable('Prenom')">Prénom ▲▼</th>
+            <th onclick="sortTable('Nom')">Nom ▲▼</th>
+            <th onclick="sortTable('Email')">Email ▲▼</th>
+            <th onclick="sortTable('Entreprise')">Entreprise ▲▼</th>
+            <th>Atelier</th>
+            <th>Présence</th>
+            <th>Heure d'arrivée</th>
+          </tr>
+        </thead>
+        <tbody></tbody>
+      </table>
+
+      <div class="chart-box">
+        <canvas id="presenceChart"></canvas>
+      </div>
+    </div>
+
+  </div>
+
+  <script>
+    // Configuration globale RCU Imagino 2026
+    const API_KEY = "1c10634c-e9e4-4308-824a-35615fd11b18"; //
+    const BASE_URL = "https://imo.prod.imagino.com/ucdapi/ImagineDay2026/1/ImagineDay_2026"; //
+    
+    let guests = [];
+    let sortKey = '';
+    let sortAsc = true;
+    let chartInstance = null;
+
+    window.onload = () => {
+      fetchGuests();
+    };
+
+    function switchTab(event, tabName) {
+      document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+      document.querySelectorAll('.view-section').forEach(s => s.classList.remove('active'));
+      
+      if(event && event.target) {
+        event.target.classList.add('active');
+      }
+      document.getElementById(`view-${tabName}`).classList.add('active');
+      
+      if(tabName === 'admin') {
+        renderAdminTable();
+        renderChart();
+      }
+    }
+
+    function fallbackToCheckin() {
+      const tabs = document.querySelectorAll('.nav-tabs .tab-btn');
+      if(tabs.length > 0) {
+        tabs[0].click();
+      }
+    }
+
+    // Récupération des invités optimisée pour GitHub Pages (Headers simplifiés pour le GET)
+    function fetchGuests() {
+      document.getElementById("loader").style.display = "block";
+      
+      fetch(`${BASE_URL}?limit=10000`, { 
+        method: "GET",
+        headers: {
+          "X-API-KEY": API_KEY //
+        }
+      })
+      .then(res => {
+        if(!res.ok) throw new Error("Impossible de joindre l'API UCD.");
+        return res.json();
+      })
+      .then(resData => {
+        guests = resData.data || [];
+        document.getElementById("loader").style.display = "none";
+        updateGlobalCounter();
+        renderCheckInList();
+        if(document.getElementById('view-admin').classList.contains('active')) {
+          renderAdminTable();
+          renderChart();
+        }
+      })
+      .catch(err => {
+        document.getElementById("loader").textContent = "Erreur de chargement de l'API UCD. Vérifiez la clé ou le déploiement.";
+        console.error(err);
+      });
+    }
+
+    function updateGlobalCounter() {
+      const present = guests.filter(g => g.Present).length; //
+      document.getElementById('globalCounter').textContent = `${present} présent(s) / ${guests.length} inscrit(s)`;
+    }
+
+    function renderCheckInList() {
+      const search = document.getElementById("searchInput").value.toLowerCase();
+      const container = document.getElementById("checkinList");
+      container.innerHTML = "";
+
+      if (search.length < 2) {
+        container.innerHTML = "<p style='color: #888; text-align: center; margin-top:20px;'>Entrez au moins 2 lettres pour lancer la recherche.</p>";
+        return;
+      }
+
+      const filtered = guests.filter(g => {
+        const nom = g.Nom ? g.Nom.toLowerCase() : ""; //
+        const prenom = g.Prenom ? g.Prenom.toLowerCase() : ""; //
+        const entreprise = g.Entreprise ? g.Entreprise.toLowerCase() : ""; //
+        return nom.includes(search) || prenom.includes(search) || entreprise.includes(search);
+      });
+
+      if(filtered.length === 0) {
+        container.innerHTML = "<p style='text-align: center; color:#666;'>Aucun invité trouvé. Utilisez l'onglet d'inscription.</p>";
+        return;
+      }
+
+      filtered.forEach(g => {
+        const emailStr = g.Email || ""; //
+        const isImagino = emailStr.toLowerCase().includes('@imagino'); //
+        const card = document.createElement("div");
+        card.className = "guest-card";
+        if(isImagino) card.style.borderLeftColor = "var(--warning)";
+
+        const internalId = guests.indexOf(g);
+
+        card.innerHTML = `
+          <div class="guest-info">
+            <span class="badge ${isImagino ? 'imagino' : 'externe'}">${isImagino ? 'Team Imagino' : 'Externe'}</span>
+            <strong style="font-size:16px; margin-top:4px;">${g.Prenom || ''} ${g.Nom || ''}</strong>
+            <small style="color:#555;">${emailStr}</small>
+            <small style="color:#777;">🏢 ${g.Entreprise || 'N/C'} – 💼 ${g.Poste || 'N/C'}</small>
+            ${g.Atelier ? `<small style='color: var(--primary); font-weight:600; margin-top:2px;'>🛠️ Atelier : ${g.Atelier}</small>` : ''}
+          </div>
+          <div>
+            <button class="btn ${g.Present ? 'success' : 'secondary'}" onclick="togglePresence(${internalId})">
+              ${g.Present ? '✔️ Présent' : 'Valider l\'arrivée'}
+            </button>
+          </div>
+        `;
+        container.appendChild(card);
+      });
+    }
+
+    // Changement de statut avec envoi POST
+    function togglePresence(index) {
+      const guest = guests[index];
+      if(!guest) return;
+
+      guest.Present = !guest.Present; //
+      guest.DateArrivee = guest.Present ? new Date().toISOString() : null; //
+
+      fetch(BASE_URL, {
+        method: "POST", //
+        headers: {
+          "Content-Type": "application/json",
+          "X-API-KEY": API_KEY //
+        },
+        body: JSON.stringify(guest)
+      })
+      .then(res => {
+        if(!res.ok) throw new Error("Erreur lors de la mise à jour de l'état.");
+        updateGlobalCounter();
+        renderCheckInList();
+        if(document.getElementById('view-admin').classList.contains('active')) {
+          renderAdminTable();
+          renderChart();
+        }
+      })
+      .catch(err => {
+        alert(err.message);
+        guest.Present = !guest.Present; // Rollback
+      });
+    }
+
+    function handleFormSubmit(e) {
+      e.preventDefault();
+      
+      let mobileInput = document.getElementById("formMobile").value.trim();
+      if (mobileInput && !mobileInput.startsWith('+')) {
+        const digits = mobileInput.replace(/\D/g, '');
+        if (digits.length === 10 && digits.startsWith('0')) {
+          mobileInput = '+33' + digits.substring(1);
+        }
+      }
+
+      const newRecord = {
+        Prenom: document.getElementById("formPrenom").value.trim(), //
+        Nom: document.getElementById("formNom").value.trim(), //
+        Email: document.getElementById("formEmail").value.trim(), //
+        Mobile: mobileInput, //
+        Poste: document.getElementById("formPoste").value.trim(), //
+        Entreprise: document.getElementById("formEntreprise").value.trim(), //
+        Atelier: document.getElementById("formAtelier").value, //
+        Matin_ApresMidi_Entiere: document.getElementById("formTiming").value, //
+        Cocktail: document.getElementById("formCocktail").value, //
+        Present: true, //
+        DateArrivee: new Date().toISOString(), //
+        Inscription_le: new Date().toLocaleDateString('fr-FR') //
+      };
+
+      fetch(BASE_URL, {
+        method: "POST", //
+        headers: {
+          "Content-Type": "application/json",
+          "X-API-KEY": API_KEY //
+        },
+        body: JSON.stringify(newRecord)
+      })
+      .then(res => {
+        if(!res.ok) throw new Error("Échec d'inscription. L'identifiant existe peut-être déjà.");
+        alert("Participant inscrit et marqué présent !");
+        document.getElementById("registrationForm").reset();
+        fetchGuests(); 
+        fallbackToCheckin();
+      })
+      .catch(err => alert(err.message));
+    }
+
+    function renderAdminTable() {
+      const tbody = document.querySelector("#adminTable tbody");
+      tbody.innerHTML = "";
+      const filterValue = document.getElementById("adminFilter").value;
+      const searchAdmin = document.getElementById("adminSearchInput").value.toLowerCase();
+
+      let filtered = guests.filter(g => {
+        const nom = g.Nom ? g.Nom.toLowerCase() : ""; //
+        const prenom = g.Prenom ? g.Prenom.toLowerCase() : ""; //
+        const emailStr = g.Email ? g.Email.toLowerCase() : ""; //
+
+        const matchesSearch = !searchAdmin || nom.includes(searchAdmin) || prenom.includes(searchAdmin);
+        if (!matchesSearch) return false;
+
+        if (filterValue === "Imagino") return emailStr.includes("@imagino"); //
+        if (filterValue === "Externe") return !emailStr.includes("@imagino"); //
+        return true;
+      });
+
+      if (sortKey) {
+        filtered.sort((a, b) => {
+          const valA = (a[sortKey] || '').toString().toLowerCase();
+          const valB = (b[sortKey] || '').toString().toLowerCase();
+          return sortAsc ? valA.localeCompare(valB) : valB.localeCompare(valA);
+        });
+      }
+
+      filtered.forEach(g => {
+        const tr = document.createElement("tr");
+        let formattedTime = '-';
+        if (g.DateArrivee) { //
+          const d = new Date(g.DateArrivee); //
+          if (!isNaN(d.getTime())) {
+            formattedTime = d.toLocaleTimeString('fr-FR', {hour: '2-digit', minute:'2-digit'});
+          }
+        }
+        
+        tr.innerHTML = `
+          <td><strong>${g.Prenom || ''}</strong></td>
+          <td><strong>${g.Nom || ''}</strong></td>
+          <td>${g.Email || ''}</td>
+          <td>${g.Entreprise || ''}</td>
+          <td><small>${g.Atelier || '-'}</small></td>
+          <td style="color: ${g.Present ? 'var(--success)' : 'var(--danger)'}; font-weight: bold;">
+            ${g.Present ? '✔️ Oui' : '❌ Non'}
+          </td>
+          <td><small>${formattedTime}</small></td>
+        `;
+        tbody.appendChild(tr);
+      });
+    }
+
+    function sortTable(key) {
+      if (sortKey === key) sortAsc = !sortAsc;
+      else { sortKey = key; sortAsc = true; }
+      renderAdminTable();
+    }
+
+    function exportCSV() {
+      const headers = ["Prenom", "Nom", "Email", "Entreprise", "Poste", "Atelier", "Present", "DateArrivee"]; //
+      const rows = guests.map(g => [
+        g.Prenom || '', g.Nom || '', g.Email || '', g.Entreprise || '', g.Poste || '', g.Atelier || '', g.Present ? 'Oui' : 'Non', g.DateArrivee || ''
+      ]);
+      const csvContent = "\uFEFF" + [headers, ...rows].map(e => e.map(v => `"${v}"`).join(",")).join("\n"); //
+      const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" }); //
+      const url = URL.createObjectURL(blob); //
+      const link = document.createElement("a"); //
+      link.href = url;
+      link.setAttribute("download", "ImagineDay2026_Extract.csv"); //
+      document.body.appendChild(link); //
+      link.click(); //
+      document.body.removeChild(link); //
+    }
+
+    function renderChart() {
+      const ctx = document.getElementById("presenceChart").getContext("2d");
+      const presentCount = guests.filter(g => g.Present).length; //
+      const absentCount = guests.length - presentCount; //
+
+      if (chartInstance) chartInstance.destroy();
+
+      chartInstance = new Chart(ctx, {
+        type: 'doughnut',
+        data: {
+          labels: ['Présents', 'Absents'], //
+          datasets: [{
+            data: [presentCount, absentCount], //
+            backgroundColor: ['#28a745', '#dc3545'] //
+          }]
+        },
+        options: {
+          responsive: true,
+          plugins: { legend: { position: 'bottom' } }
+        }
+      });
+    }
+  </script>
+</body>
+</html>
